@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class Raycaster : MonoBehaviour
 {
@@ -15,6 +16,9 @@ public class Raycaster : MonoBehaviour
     public GameObject plane;
     [SerializeField] private Vector3 planePosition = new Vector3(0, 5f, -2f);
     [SerializeField] private Vector3 planeRotation = new Vector3(90f, 0, 0);
+
+    [SerializeField] private float width = 640f;
+    [SerializeField] private float height = 480f;
     #endregion
 
     #region Light
@@ -68,6 +72,13 @@ public class Raycaster : MonoBehaviour
         [SerializeField] private float maxAlpha = 600f;
     #endregion
 
+    #region Raycaster
+        private Vector3 NC, NTL, NTR, NBL, NBR;
+        private Vector3 pixelPos;
+        private float pixelCenterW, pixelCenterH;
+        private float NEARheight, NEARwidth;
+    #endregion
+
 
     private void Start()
     {
@@ -102,7 +113,7 @@ public class Raycaster : MonoBehaviour
             GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 
             sphereRadio = Random.Range(minRadio, maxRadio);
-            sphere.transform.localScale *= sphereRadio;
+            sphere.transform.localScale *= sphereRadio * 2;
             sphere.transform.localPosition = new Vector3(Random.Range(minPositionX, maxPositionX), Random.Range(minPositionY, maxPositionY), Random.Range(minPositionZ, maxPositionZ));
 
             sphere.GetComponent<Renderer>().material.shader = Shader.Find("Legacy Shaders/Specular");
@@ -114,7 +125,51 @@ public class Raycaster : MonoBehaviour
             sphere.GetComponent<Renderer>().material.SetColor("_SpecColor", new Color(kdr / 3.0f, kdg / 3.0f, kdb / 3.0f, Random.Range(minAlpha / 1000f, maxAlpha / 1000f))); // Specular
         }
         #endregion
+
+        #region Raycaster Calculus
+            NC = cameraPosition + Camera.transform.forward * Camera.nearClipPlane;
+        GameObject sphNC = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        sphNC.GetComponent<Renderer>().material.color = Color.red;
+        sphNC.transform.localPosition = NC;
+        sphNC.transform.localScale = new Vector3(.1f, .1f, .1f);
+
+        float angleFOV = Camera.fieldOfView * Mathf.Deg2Rad;
+        NEARheight = 2 * Mathf.Tan(angleFOV / 2) * Camera.nearClipPlane;
+        NEARwidth = NEARheight * Camera.aspect;
+
+        NTL = NC + Camera.transform.up * NEARheight / 2 + (-Camera.transform.right) * NEARwidth / 2;
+        GameObject sphNTL = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        sphNTL.GetComponent<Renderer>().material.color = Color.red;
+        sphNTL.transform.localPosition = NTL;
+        sphNTL.transform.localScale = new Vector3(.1f, .1f, .1f);
+
+        Debug.Log(1 / 640f);
+
+        // Texels
+        pixelCenterW = (NEARwidth / 640f) / 2;
+        pixelCenterH = (NEARheight / 480f) / 2;
+
+        //pixelPos = NTL + Camera.transform.right * 1 * (1 / 640f) - Camera.transform.up * 1 * (1 / 480f) + Camera.transform.right * pixelCenterW - Camera.transform.up * pixelCenterH;
+        #endregion
     }
+
+    private void Update()
+    {
+        for (int i = 0; i <= width; i++) {
+            for (int j = 0; j <= height; j++)
+            {
+                Vector3 pixelPos = pixelPosCalc(i, j);
+                //Debug.DrawLine(Camera.transform.position, pixelPos, Color.green); //
+            }
+        }
+    }
+
+    public Vector3 pixelPosCalc(int i, int j)
+    {
+        pixelPos = NTL + Camera.transform.right * i * (NEARwidth / width) - Camera.transform.up * j * (NEARheight / height) + Camera.transform.right * pixelCenterW - Camera.transform.up * pixelCenterH;
+        return pixelPos;
+    }
+
 }
 
 // MaterialSetColor para cambio de color por medio de especular, modificacion de shader de Legacyrenderer/Specular
