@@ -46,6 +46,9 @@ public class Raycaster : MonoBehaviour
         // Sphere Position Z ranges
         [SerializeField] private float minPositionZ = 8.0f;
         [SerializeField] private float maxPositionZ = 10.0f;
+
+        // List of spheres in scene
+        private List<Sphere> sphereList = new List<Sphere>();
     #endregion
 
     #region Ilumination
@@ -114,15 +117,22 @@ public class Raycaster : MonoBehaviour
 
             sphereRadio = Random.Range(minRadio, maxRadio);
             sphere.transform.localScale *= sphereRadio * 2;
-            sphere.transform.localPosition = new Vector3(Random.Range(minPositionX, maxPositionX), Random.Range(minPositionY, maxPositionY), Random.Range(minPositionZ, maxPositionZ));
+            Vector3 sphCenter = new Vector3(Random.Range(minPositionX, maxPositionX), Random.Range(minPositionY, maxPositionY), Random.Range(minPositionZ, maxPositionZ));
+            sphere.transform.localPosition = sphCenter;
 
             sphere.GetComponent<Renderer>().material.shader = Shader.Find("Legacy Shaders/Specular");
             kdr = Random.Range(kdMin, kdMax);
             kdg = Random.Range(kdMin, kdMax);
             kdb = Random.Range(kdMin, kdMax);
-            sphere.GetComponent<Renderer>().material.SetColor("_Color", new Color(kdr, kdg, kdb, Random.Range(minAlpha / 1000f, maxAlpha / 1000f))); // Diffuse
-            sphere.GetComponent<Renderer>().material.SetColor("_Emission", new Color(kdr / 5.0f, kdg / 5.0f, kdb / 5.0f, Random.Range(minAlpha / 1000f, maxAlpha / 1000f))); // Ambient
-            sphere.GetComponent<Renderer>().material.SetColor("_SpecColor", new Color(kdr / 3.0f, kdg / 3.0f, kdb / 3.0f, Random.Range(minAlpha / 1000f, maxAlpha / 1000f))); // Specular
+            sphere.GetComponent<Renderer>().material.SetColor("_Color", new Color(kdr, kdg, kdb)); // Diffuse
+            sphere.GetComponent<Renderer>().material.SetColor("_Emission", new Color(kdr / 5.0f, kdg / 5.0f, kdb / 5.0f)); // Ambient
+            sphere.GetComponent<Renderer>().material.SetColor("_SpecColor", new Color(kdr / 3.0f, kdg / 3.0f, kdb / 3.0f)); // Specular
+
+            float alpha = Random.Range(minAlpha, maxAlpha);
+
+            Sphere sph = new Sphere(sphCenter, sphereRadio, new Vector3(kdr, kdg, kdb), new Vector3(kdr / 5.0f, kdg / 5.0f, kdb / 5.0f), new Vector3(kdr / 3.0f, kdg / 3.0f, kdb / 3.0f), alpha);
+            sphereList.Add(sph);
+
         }
         #endregion
 
@@ -155,8 +165,8 @@ public class Raycaster : MonoBehaviour
 
     private void Update()
     {
-        for (int i = 0; i <= width; i++) {
-            for (int j = 0; j <= height; j++)
+        for (int i = 0; i <= width; i+=20) {
+            for (int j = 0; j <= height; j += 20)
             {
                 Vector3 pixelPos = pixelPosCalc(i, j);
                 //Debug.DrawLine(Camera.transform.position, pixelPos, Color.green); //
